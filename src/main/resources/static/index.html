@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GitHub Repo Finder</title>
+  <style>
+    /* ===== CSS Variables (Theme) ===== */
+    :root {
+      --bg: #0f1226;              /* deep indigo */
+      --bg-soft: #161a36;         /* softer indigo */
+      --card: #121633;            /* card surface */
+      --text: #eef2ff;            /* off-white */
+      --muted: #c7cdfc;           /* muted text */
+      --accent-1: #7c3aed;        /* purple */
+      --accent-2: #06b6d4;        /* cyan */
+      --accent-3: #f97316;        /* orange */
+      --success: #10b981;         /* green */
+      --danger: #ef4444;          /* red */
+      --warning: #f59e0b;         /* amber */
+      --shadow: 0 10px 30px rgba(0,0,0,.45);
+      --radius-xl: 18px;
+      --radius-lg: 14px;
+      --radius-md: 12px;
+      --glass: rgba(255,255,255,.06);
+      --border: 1px solid rgba(255,255,255,.12);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--text);
+      background: radial-gradient(1200px 600px at 10% -20%, rgba(124, 58, 237, .35), transparent),
+                  radial-gradient(900px 500px at 100% 0%, rgba(6, 182, 212, .25), transparent),
+                  linear-gradient(180deg, #0b0e22 0%, #0f1226 100%);
+      overflow-x: hidden;
+    }
+
+    /* ===== Header / Hero ===== */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      backdrop-filter: saturate(1.2) blur(10px);
+      background: linear-gradient(90deg, rgba(124, 58, 237, .25), rgba(6, 182, 212, .15))
+                  , var(--glass);
+      border-bottom: var(--border);
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 18px 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: conic-gradient(from 120deg, var(--accent-1), var(--accent-2), var(--accent-3), var(--accent-1));
+      box-shadow: 0 6px 16px rgba(124, 58, 237, .35);
+    }
+    h1 { margin: 0; font-size: 20px; letter-spacing: .3px; }
+    .subtitle { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+    /* ===== Search Card ===== */
+    .section { padding: 24px 20px; }
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+      border: var(--border);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius-xl);
+      padding: 18px;
+    }
+
+    .search-row {
+      display: grid;
+      grid-template-columns: 1.2fr auto auto;
+      gap: 12px;
+    }
+
+    .input {
+      width: 100%;
+      padding: 14px 14px;
+      border-radius: var(--radius-lg);
+      border: var(--border);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      outline: none;
+      transition: .2s ease;
+    }
+    .input:focus {
+      border-color: rgba(124, 58, 237, .7);
+      box-shadow: 0 0 0 4px rgba(124, 58, 237, .15);
+    }
+
+    .btn {
+      padding: 12px 16px;
+      border-radius: var(--radius-lg);
+      border: var(--border);
+      background: linear-gradient(180deg, rgba(124, 58, 237, .9), rgba(124, 58, 237, .7));
+      color: white;
+      cursor: pointer;
+      transition: transform .06s ease, filter .2s ease;
+      font-weight: 600;
+      letter-spacing: .2px;
+    }
+    .btn:hover { filter: brightness(1.05); }
+    .btn:active { transform: translateY(1px); }
+
+    .btn-secondary {
+      background: linear-gradient(180deg, rgba(6, 182, 212, .9), rgba(6, 182, 212, .75));
+    }
+
+    .hint { color: var(--muted); font-size: 12px; margin-top: 8px; }
+
+    /* ===== Stats + Filters Row ===== */
+    .toolbar {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+      gap: 12px; margin-top: 14px;
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border-radius: 999px; border: var(--border);
+      background: rgba(6, 182, 212, .12);
+      color: #aaf2ff; font-size: 12px;
+    }
+    .filter {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border-radius: 999px; border: var(--border);
+      background: rgba(124, 58, 237, .12);
+      color: #e6d2ff; font-size: 12px;
+    }
+
+    /* ===== Grid ===== */
+    .grid { display: grid; gap: 14px; margin-top: 18px; }
+    @media (min-width: 640px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 980px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+
+    .repo-card {
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border: var(--border);
+      border-radius: var(--radius-xl);
+      padding: 16px;
+      min-height: 160px;
+      display: flex; flex-direction: column; justify-content: space-between;
+      transition: transform .12s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+    .repo-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 40px rgba(124, 58, 237, .18);
+      border-color: rgba(124, 58, 237, .45);
+    }
+    .repo-name { font-size: 16px; font-weight: 700; letter-spacing: .2px; }
+    .repo-desc { color: var(--muted); font-size: 13px; margin: 8px 0 10px; line-height: 1.4; }
+    .repo-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; color: #c2d3ff; }
+    .chip {
+      background: rgba(255,255,255,.06); border: var(--border);
+      padding: 6px 10px; border-radius: 999px;
+    }
+    .link {
+      display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: white;
+      background: linear-gradient(180deg, rgba(249, 115, 22, .9), rgba(249, 115, 22, .75));
+      border: var(--border); border-color: rgba(255,255,255,.18);
+      padding: 8px 12px; border-radius: 10px; font-weight: 600; letter-spacing: .2px;
+      margin-top: 8px;
+    }
+
+    /* ===== Pagination & Toast ===== */
+    .pagination { display: flex; gap: 8px; justify-content: center; margin-top: 18px; }
+    .page-btn {
+      padding: 8px 12px; border-radius: 10px; border: var(--border);
+      background: rgba(255,255,255,.05); color: var(--text); cursor: pointer; font-weight: 600;
+    }
+    .page-btn.active { outline: 2px solid rgba(124,58,237,.7); }
+
+    .empty { text-align: center; color: var(--muted); padding: 28px 6px; }
+
+    .toast {
+      position: fixed; bottom: 18px; right: 18px; z-index: 20;
+      background: linear-gradient(180deg, rgba(16,185,129,.9), rgba(16,185,129,.75));
+      color: white; padding: 12px 16px; border-radius: 12px; box-shadow: var(--shadow);
+      display: none;
+    }
+    .toast.error { background: linear-gradient(180deg, rgba(239,68,68,.92), rgba(239,68,68,.78)); }
+
+    /* ===== Loader ===== */
+    .loader {
+      width: 46px; height: 46px; border-radius: 50%;
+      border: 4px solid rgba(255,255,255,.18);
+      border-top-color: var(--accent-1);
+      animation: spin 1s linear infinite;
+      margin: 30px auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container brand">
+      <div class="logo" aria-hidden="true"></div>
+      <div>
+        <h1>GitHub Repo Finder</h1>
+        <div class="subtitle">Search public repositories, store via your backend, and browse a pretty dashboard ✨</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container section">
+    <section class="card">
+      <div class="search-row">
+        <input id="keyword" class="input" placeholder="Search keyword e.g. spring boot, react, docker" />
+        <button id="btnSearch" class="btn" title="Fetch & Save from GitHub">Search & Save</button>
+        <button id="btnRefresh" class="btn btn-secondary" title="Reload stored results">Refresh</button>
+      </div>
+      <div class="hint">Backend endpoints used: <code>POST /search?keyword=...</code> and <code>GET /results</code>. Configure API base below if needed.</div>
+
+      <div class="toolbar">
+        <span id="countBadge" class="badge">0 results</span>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap: wrap;">
+          <span class="filter" title="Client-side filter">Stars ≥
+            <input id="minStars" type="number" min="0" value="0" style="width:90px; margin-left:8px; padding:6px 10px; border-radius: 10px; border: var(--border); background: rgba(255,255,255,.06); color: var(--text);" />
+          </span>
+          <span class="filter" title="Change API base">API Base:
+            <input id="apiBase" type="text" value="http://localhost:8080" style="width:230px; margin-left:8px; padding:6px 10px; border-radius: 10px; border: var(--border); background: rgba(255,255,255,.06); color: var(--text);" />
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <section id="gridSection" class="grid"></section>
+    <div id="pagination" class="pagination"></div>
+    <div id="emptyState" class="empty" style="display:none;">No results yet. Try a search above! 🚀</div>
+    <div id="loader" class="loader" style="display:none;"></div>
+  </main>
+
+  <div id="toast" class="toast">Saved & loaded successfully</div>
+
+  <script>
+    // ===== Config =====
+    const state = {
+      all: [],        // full list from backend
+      filtered: [],   // after client-side filters
+      page: 1,
+      pageSize: 9,
+      minStars: 0,
+      apiBase: 'http://localhost:8080'
+    };
+
+    const els = {
+      keyword: document.getElementById('keyword'),
+      btnSearch: document.getElementById('btnSearch'),
+      btnRefresh: document.getElementById('btnRefresh'),
+      minStars: document.getElementById('minStars'),
+      grid: document.getElementById('gridSection'),
+      pagination: document.getElementById('pagination'),
+      countBadge: document.getElementById('countBadge'),
+      apiBase: document.getElementById('apiBase'),
+      empty: document.getElementById('emptyState'),
+      loader: document.getElementById('loader'),
+      toast: document.getElementById('toast')
+    };
+
+    // Load apiBase from input on change
+    els.apiBase.addEventListener('change', () => {
+      state.apiBase = els.apiBase.value.trim().replace(/\/$/, '');
+      showToast('API base set to ' + state.apiBase);
+    });
+
+    // Search button: POST /search then refresh list
+    els.btnSearch.addEventListener('click', async () => {
+      const kw = els.keyword.value.trim();
+      if (!kw) return showToast('Please enter a keyword', true);
+      try {
+        toggleLoading(true);
+        const res = await fetch(`${state.apiBase}/search?keyword=${encodeURIComponent(kw)}`, { method: 'POST' });
+        if (!res.ok) throw new Error('Search failed: ' + res.status);
+        await res.json(); // response not strictly needed; we refetch from /results next
+        await loadAll();
+        showToast('Fetched & saved results for "' + kw + '"');
+      } catch (e) {
+        console.error(e);
+        showToast(e.message || 'Search failed', true);
+      } finally {
+        toggleLoading(false);
+      }
+    });
+
+    // Refresh button: GET /results
+    els.btnRefresh.addEventListener('click', loadAll);
+
+    // Filter: min stars
+    els.minStars.addEventListener('input', () => {
+      state.minStars = Number(els.minStars.value || 0);
+      applyFilters();
+      render();
+    });
+
+    // Pagination helpers
+    function totalPages() {
+      return Math.max(1, Math.ceil(state.filtered.length / state.pageSize));
+    }
+    function setPage(p) {
+      state.page = Math.min(Math.max(1, p), totalPages());
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Loader & Toast
+    function toggleLoading(show) { els.loader.style.display = show ? 'block' : 'none'; }
+    function showToast(msg, isError = false) {
+      els.toast.textContent = msg;
+      els.toast.classList.toggle('error', !!isError);
+      els.toast.style.display = 'block';
+      setTimeout(() => els.toast.style.display = 'none', 2200);
+    }
+
+    // Fetch all stored results
+    async function loadAll() {
+      try {
+        toggleLoading(true);
+        const res = await fetch(`${state.apiBase}/results`);
+        if (!res.ok) throw new Error('Failed to load results: ' + res.status);
+        const data = await res.json();
+        state.all = Array.isArray(data) ? data : [];
+        applyFilters();
+        setPage(1);
+        render();
+      } catch (e) {
+        console.error(e);
+        showToast(e.message || 'Failed to load results', true);
+      } finally {
+        toggleLoading(false);
+      }
+    }
+
+    // Client-side filters
+    function applyFilters() {
+      const min = state.minStars;
+      state.filtered = state.all.filter(r => (r.stars || 0) >= min);
+      els.countBadge.textContent = `${state.filtered.length} result${state.filtered.length === 1 ? '' : 's'}`;
+      els.empty.style.display = state.filtered.length ? 'none' : 'block';
+    }
+
+    // Render grid + pagination
+    function render() {
+      const start = (state.page - 1) * state.pageSize;
+      const slice = state.filtered.slice(start, start + state.pageSize);
+
+      // Cards
+      els.grid.innerHTML = slice.map(repo => cardTemplate(repo)).join('');
+
+      // Pagination
+      const pages = totalPages();
+      const btns = [];
+      if (pages > 1) {
+        btns.push(`<button class="page-btn" onclick="setPage(${state.page - 1})" ${state.page === 1 ? 'disabled' : ''}>Prev</button>`);
+        const range = pageRange(state.page, pages, 5);
+        for (const p of range) {
+          btns.push(`<button class="page-btn ${p === state.page ? 'active' : ''}" onclick="setPage(${p})">${p}</button>`);
+        }
+        btns.push(`<button class="page-btn" onclick="setPage(${state.page + 1})" ${state.page === pages ? 'disabled' : ''}>Next</button>`);
+      }
+      els.pagination.innerHTML = btns.join('');
+    }
+
+    // Pagination helper: centered window
+    function pageRange(current, total, windowSize) {
+      const half = Math.floor(windowSize / 2);
+      let start = Math.max(1, current - half);
+      let end = Math.min(total, start + windowSize - 1);
+      start = Math.max(1, end - windowSize + 1);
+      const arr = [];
+      for (let i = start; i <= end; i++) arr.push(i);
+      return arr;
+    }
+
+    // Card template
+    function cardTemplate(r) {
+      const name = escapeHtml(r.name || '—');
+      const desc = escapeHtml(r.description || 'No description');
+      const url = r.url || '#';
+      const stars = r.stars ?? 0;
+      const kw = escapeHtml(r.keyword || '');
+      return `
+        <article class="repo-card">
+          <div>
+            <div class="repo-name">${name}</div>
+            <div class="repo-desc">${desc}</div>
+            <div class="repo-meta">
+              <span class="chip">⭐ ${stars}</span>
+              ${kw ? `<span class="chip">🔎 ${kw}</span>` : ''}
+            </div>
+          </div>
+          <a class="link" href="${url}" target="_blank" rel="noopener">Open on GitHub →</a>
+        </article>
+      `;
+    }
+
+    // Escape HTML util
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[s]));
+    }
+
+    // Initial load
+    (function init() {
+      // Allow overriding API base via ?apiBase=...
+      const usp = new URLSearchParams(location.search);
+      const qApi = usp.get('apiBase');
+      if (qApi) {
+        state.apiBase = qApi.replace(/\/$/, '');
+        els.apiBase.value = state.apiBase;
+      }
+      loadAll();
+    })();
+
+    // Expose setPage for onclick handlers
+    window.setPage = setPage;
+  </script>
+</body>
+</html>
